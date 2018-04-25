@@ -1,9 +1,15 @@
-{{- if .Values.ingress.enabled }}
-{{- range .Values.ingress.hosts }}
+{{/* kubeprod uses ClusterIP svc behind Ingress */}}
+{{ $kubeprodEnabled := .Values.kubeprod.enabled }}
+{{ $kubeprodDomain := .Values.kubeprod.domain }}
+{{ $ingressEnabled := (or (and .Values.kubeprod.enabled true) .Values.ingress.enabled) }}
+{{ $ingressHosts := (or (and .Values.kubeprod.enabled .Values.kubeprod.hosts) .Values.ingress.hosts) }}
+{{- if $ingressEnabled }}
+{{- range $ingressHosts }}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: "{{- printf "%s-%s" .name $.Release.Name | trunc 63 | trimSuffix "-" -}}"
+  {{- $name := printf "%s-%s" .name ($.Release.Name | trunc 63 | trimSuffix "-")  }}
+  name: {{ $name }}
   labels:
     app: {{ template "fullname" $ }}
     chart: "{{ $.Chart.Name }}-{{ $.Chart.Version }}"
@@ -18,18 +24,20 @@ metadata:
     {{- end }}
 spec:
   rules:
-  - host: {{ .name }}
+  {{- $host:= printf "%s%s" .name (or (and $kubeprodDomain (printf ".%s" $kubeprodDomain)) "") }}
+  {{- $tlsSecretName:= (or (and $kubeprodEnabled (printf "%s-tls" $name)) .tlsSecret) }}
+  - host: {{ $host }}
     http:
       paths:
         - path: {{ default "/" .path }}
           backend:
             serviceName: {{ template "fullname" $ }}
             servicePort: 80
-{{- if .tls }}
+{{- if (or .tls $kubeprodEnabled) }}
   tls:
   - hosts:
-    - {{ .name }}
-    secretName: {{ .tlsSecret }}
+    - {{ $host }}
+    secretName: {{ $tlsSecretName }}
 {{- end }}
 ---
 {{- end }}

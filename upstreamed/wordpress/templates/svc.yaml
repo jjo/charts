@@ -1,3 +1,6 @@
+{{/* kubeprod uses ClusterIP svc behind Ingress */}}
+{{- $serviceType := (or (and .Values.kubeprod.enabled "ClusterIP") .Values.serviceType) }}
+{{- $annotations := (or (and .Values.kubeprod.enabled .Values.kubeprod.svc.annotations) false) }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,22 +10,28 @@ metadata:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
+  {{- if $annotations }}
+  annotations:
+    {{- range $key, $value := $annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
-  type: {{ .Values.serviceType }}
-  {{- if (or (eq .Values.serviceType "LoadBalancer") (eq .Values.serviceType "NodePort")) }}
+  type: {{ $serviceType }}
+  {{- if (or (eq $serviceType "LoadBalancer") (eq $serviceType "NodePort")) }}
   externalTrafficPolicy: {{ .Values.serviceExternalTrafficPolicy | quote }}
   {{- end }}
   ports:
     - name: http
       port: 80
       targetPort: http
-      {{- if (and (eq .Values.serviceType "NodePort") (not (empty .Values.nodePorts.http)))}}
+      {{- if (and (eq $serviceType "NodePort") (not (empty .Values.nodePorts.http)))}}
       nodePort: {{ .Values.nodePorts.http }}
       {{- end }}
     - name: https
       port: 443
       targetPort: https
-      {{- if (and (eq .Values.serviceType "NodePort") (not (empty .Values.nodePorts.https)))}}
+      {{- if (and (eq $serviceType "NodePort") (not (empty .Values.nodePorts.https)))}}
       nodePort: {{ .Values.nodePorts.https }}
       {{- end }}
   selector:
