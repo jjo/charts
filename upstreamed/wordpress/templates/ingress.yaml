@@ -1,8 +1,8 @@
 {{/* kubeprod uses ClusterIP svc behind Ingress */}}
 {{ $kubeprodEnabled := .Values.kubeprod.enabled }}
-{{ $kubeprodDomain := .Values.kubeprod.domain }}
 {{ $ingressEnabled := (or (and .Values.kubeprod.enabled true) .Values.ingress.enabled) }}
 {{ $ingressHosts := (or (and .Values.kubeprod.enabled .Values.kubeprod.hosts) .Values.ingress.hosts) }}
+{{ $dotDomain := (or (and .Values.kubeprod.enabled (printf ".%s" .Values.kubeprod.domain)) "") }}
 {{- if $ingressEnabled }}
 {{- range $ingressHosts }}
 apiVersion: extensions/v1beta1
@@ -24,7 +24,7 @@ metadata:
     {{- end }}
 spec:
   rules:
-  {{- $host:= printf "%s%s" .name (or (and $kubeprodDomain (printf ".%s" $kubeprodDomain)) "") }}
+  {{- $host:= printf "%s%s" .name $dotDomain }}
   {{- $tlsSecretName:= (or (and $kubeprodEnabled (printf "%s-tls" $name)) .tlsSecret) }}
   - host: {{ $host }}
     http:

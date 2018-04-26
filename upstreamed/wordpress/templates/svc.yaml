@@ -10,9 +10,9 @@ metadata:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
-  {{- if $annotations }}
+  {{- with $annotations }}
   annotations:
-    {{- range $key, $value := $annotations }}
+    {{- range $key, $value := . }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
